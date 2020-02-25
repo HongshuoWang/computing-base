@@ -1,27 +1,38 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[5]:
+# In[15]:
 
 
-from bs4 import BeautifulSoup as soup  # HTML data structure
-from urllib.request import urlopen as uReq  # Web client
+from bs4 import BeautifulSoup as soup  
+import requests
 import xlsxwriter
 import pandas as pd
+import random
 
 counter = 1
-lastnum = ''
+
+  # use Dataframe library to temporarily store the information
+data = pd.DataFrame(columns = ('Name','Rating','Price','Discount','Earliest_Arrivel_Time'))
+
+user_agent_list = [
+    "Mozilla/5.0(Macintosh;IntelMacOSX10.6;rv:2.0.1)Gecko/20100101Firefox/4.0.1",
+    "Mozilla/4.0(compatible;MSIE6.0;WindowsNT5.1)",
+    "Opera/9.80(WindowsNT6.1;U;en)Presto/2.8.131Version/11.11",
+    "Mozilla/5.0(Macintosh;IntelMacOSX10_7_0)AppleWebKit/535.11(KHTML,likeGecko)Chrome/17.0.963.56Safari/535.11",
+    "Mozilla/4.0(compatible;MSIE7.0;WindowsNT5.1)",
+    "Mozilla/4.0(compatible;MSIE7.0;WindowsNT5.1;Trident/4.0;SE2.XMetaSr1.0;SE2.XMetaSr1.0;.NETCLR2.0.50727;SE2.XMetaSr1.0)"
+]
+
+#produce a random header to prevent anti-automation
+header={"User-Agent":random.choice(user_agent_list)}
 
 #     leverage the pattern in url to loop through all pages
-while True:
+while counter < 8:
     page_url = 'https://www.amazon.com/s?k=table+lamp&crid=2E4P43QLFK3P8&qid=1582534745&sprefix=table+%2Caps%2C387&ref=sr_pg_' + str(counter)  
 #     opens the connection and downloads html page from url
-    uClient = uReq(page_url)
-    page_soup = soup(uClient.read(), "html.parser")
-    uClient.close()
-    
-    # use Dataframe library to temporarily store the information
-    data = pd.DataFrame(columns = ('Name','Rating','Price','Discount','Earliest_Arrivel_Time'))
+    page = requests.get(page_url, headers = header, timeout = 25)
+    page_soup = soup(page.text, "html.parser")
 
     # finds each product from the store page
     containers = page_soup.findAll("div", {"class": "a-section a-spacing-medium"})
@@ -58,12 +69,6 @@ while True:
         item = pd.DataFrame([[name,rating,price,discount,time]],columns = ('Name','Rating','Price','Discount','Earliest_Arrivel_Time'))
         data = data.append(item,ignore_index = True)
         
-    #     check if current page is the last page
-    if counter == 1:
-        lastnum = page_soup.find("li",{"class":"a-disabled"}).text
-    else:
-        if lastnum != page_soup.find("li",{"class":"a-disabled"}).text:
-            break  
     counter += 1    
     
 
